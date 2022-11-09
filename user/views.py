@@ -1,17 +1,15 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
-from django.template.loader import render_to_string
+from django.contrib.auth import authenticate, login, update_session_auth_hash
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, PasswordChangeForm
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from .forms import UserRegisterForm
 from django.db.models.query_utils import Q
-from django.core.mail import EmailMultiAlternatives, BadHeaderError, send_mail
+from django.core.mail import EmailMultiAlternatives
 
 
 def index(request):
@@ -49,7 +47,12 @@ def Login(request):
             messages.success(request, f' welcome {username} !!')
             return redirect('index')
         else:
-            messages.info(request, f'account done not exit plz sign in')
+            user_to_connect = User.objects.filter(username=username)
+            if user_to_connect.count():
+                messages.info(request, f'Your password is incorrect.')
+            else:
+                messages.info(request, f"There's no account with username {username}, "
+                                       f"SignUp to create your account.")
     form = AuthenticationForm()
     return render(request, 'user/login.html', {'form': form, 'title': 'log in'})
 
@@ -62,23 +65,45 @@ def password_reset_request(request):
             associated_users = User.objects.filter(Q(email=data))
             if associated_users.exists():
                 for user in associated_users:
-                    subject = "Password Reset Requested"
-                    email_template_name = "user/password/password_reset_email.txt"
-                    c = {
-                        "email": user.email,
-                        'domain': '127.0.0.1:8000',
-                        'site_name': 'Website',
-                        "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                        "user": user,
-                        'token': default_token_generator.make_token(user),
-                        'protocol': 'http',
-                    }
-                    email = render_to_string(email_template_name, c)
-                    try:
-                        send_mail(subject, email, 'admin@example.com', [user.email], fail_silently=False)
-                    except BadHeaderError:
-                        return HttpResponse('Invalid header found.')
-                    return redirect("/password_reset/done/")
+                    # subject = "Password Reset Requested"
+                    # email_template_name = "user/password/password_reset_email.txt"
+                    # c = {
+                    #     "email": user.email,
+                    #     'domain': '127.0.0.1:8000',
+                    #     'site_name': 'Website',
+                    #     "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                    #     "user": user,
+                    #     'token': default_token_generator.make_token(user),
+                    #     'protocol': 'http',
+                    # }
+                    # email = render_to_string(email_template_name, c)
+                    # try:
+                    #     send_mail(subject, email, 'admin@example.com', [user.email], fail_silently=False)
+                    # except BadHeaderError:
+                    #     return HttpResponse('Invalid header found.')
+                    return render(request=request, template_name="user/password/password_reset_done.html",
+                                  context={
+                                      "password_link": f"/reset"
+                                                       f"/{urlsafe_base64_encode(force_bytes(user.pk))}"
+                                                       f"/{default_token_generator.make_token(user)}"
+                                  })
     password_reset_form = PasswordResetForm()
     return render(request=request, template_name="user/password/password_reset.html",
                   context={"form": password_reset_form})
+
+
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important!
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('index')
+        else:
+            messages.error(request, 'Please correct the error below.')
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'user/password_change.html', {
+        'form': form
+    })
