@@ -23,6 +23,8 @@ urlpatterns = [
     path('logout/', auth.LogoutView.as_view(template_name='user/index.html'), name='logout'),
     path('register/', user_view.register, name='register'),
     path('settings/', user_view.change_password, name='change_password'),
+    path('upload/', user_view.upload, name="profile_upload"),
+    path('item/<int:pk>/edit', user_view.edit, name="edit"),
     path('password_reset/', user_view.password_reset_request, name="password_reset"),
     path('password_reset/done/',
          auth.PasswordResetDoneView.as_view(template_name='user/password/password_reset_done.html'),

@@ -1,0 +1,84 @@
+{% extends "user/index.html" %}
+{% load crispy_forms_tags %}
+{% block start %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div style="padding-left: 100px;padding-top: 30px; width: 100%;display: form;">
+
+    {% if messages %}
+    {% for message in messages %}
+    <div>
+        <!--                | means OR operator-->
+        <strong>{{message|safe}}</strong>
+    </div>
+    {% endfor %}
+    {% else %}
+    {{order}}
+    <form action="" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="file1"> Upload a file</label>
+        <div>
+            {% if file_not_selected %}
+            <label style="color: red;">choose a file.</label>
+            {% endif %}
+        </div>
+        <input type="file" id="file1" name="file">
+        <small>Only accepts CSV files</small>
+        <button type="submit">Upload</button>
+    </form>
+    {% endif %}
+</div>
+
+<div style="padding-left: 100px;padding-top: 20px; width: 100%;display: table;">
+    <table border="1px">
+        <tr>
+            <th>#</th>
+            <th>username</th>
+            <th >password</th>
+            <th>role</th>
+            <th>name</th>
+            <th>email</th>
+            <th>address</th>
+            <th>country</th>
+            <th>company</th>
+        </tr>
+        {% for item in profiles %}
+        <tr>
+            <td>{{ item.pk }}</td>
+            <td>{{ item.username }}</td>
+            <td>{{ item.password }}</td>
+            <td>{{ item.role }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.email }}</td>
+            <td>{{ item.address }}</td>
+            <td>{{ item.country }}</td>
+            <td>{{ item.company }}</td>
+            <td>
+
+                <a class="btn" href="{% url 'edit' pk=item.pk %}">
+                    <i class="far fa-eye">edit</i>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% if existing %}
+    <h4>These employees already exists:</h4>
+    {% for employee in existing %}
+    <div>{{ employee }}</div>
+    {% endfor %}
+    {% endif %}
+
+</div>
+
+</body>
+</html>
+
+{% endblock start %}
